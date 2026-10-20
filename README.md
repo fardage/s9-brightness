@@ -13,7 +13,7 @@ A macOS menu bar app that sets the hardware backlight of Samsung smart monitors 
 
 ## Download
 
-Get the signed and notarized app from [Releases](https://github.com/fardage/s9-brightness/releases), unzip it and move it to Applications.
+Get the signed and notarized DMG from [Releases](https://github.com/fardage/s9-brightness/releases), open it and drag S9 Brightness to Applications.
 
 ## Build
 
