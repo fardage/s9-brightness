@@ -1,0 +1,68 @@
+{
+  "default-configuration": "Release",
+  "configurations": [
+    "Debug",
+    "Release",
+  ],
+  "localizations": {
+    "development": "en",
+    "supported": [
+      "Base",
+      "en",
+    ],
+  },
+  "files": [
+    { "kind": "folder", "path": "Sources", "target-membership": [ "S9Brightness" ] },
+    { "kind": "folder", "path": "Resources", "target-membership": [ "S9Brightness" ] },
+    { "path": "Info.plist" },
+    {
+      "kind": "group",
+      "name": "Products",
+      "children": [
+        { "path": "<PRODUCTS>/S9Brightness.app", "type": "wrapper.application", "index": false },
+      ],
+    },
+  ],
+  "targets": [
+    {
+      "name": "S9Brightness",
+      "id": "5B9B0A1C2D3E4F5061728394",
+      "product": "Products/S9Brightness.app",
+      "product-type": "application",
+      "build-phases": [
+        "compile-sources",
+        "frameworks",
+        "resources",
+      ],
+      "build-settings": {
+        "ASSETCATALOG_COMPILER_APPICON_NAME": "AppIcon",
+        "CODE_SIGN_STYLE": "Automatic",
+        "CURRENT_PROJECT_VERSION": "1",
+        "DEVELOPMENT_TEAM": "7C48W538SL",
+        "ENABLE_HARDENED_RUNTIME": "YES",
+        "GENERATE_INFOPLIST_FILE": "YES",
+        "INFOPLIST_FILE": "Info.plist",
+        "INFOPLIST_KEY_CFBundleDisplayName": "S9 Brightness",
+        "INFOPLIST_KEY_LSApplicationCategoryType": "public.app-category.utilities",
+        "INFOPLIST_KEY_LSUIElement": "YES",
+        "INFOPLIST_KEY_NSLocalNetworkUsageDescription": "S9 Brightness finds your Samsung monitor on the local network and sets its backlight.",
+        "MARKETING_VERSION": "1.0",
+        "PRODUCT_BUNDLE_IDENTIFIER": "ch.tseng.S9Brightness",
+        "PRODUCT_NAME": "$(TARGET_NAME)",
+      },
+    },
+  ],
+  "build-settings": {
+    "ALWAYS_SEARCH_USER_PATHS": "NO",
+    "DEBUG_INFORMATION_FORMAT[config=Debug]": "dwarf",
+    "DEBUG_INFORMATION_FORMAT[config=Release]": "dwarf-with-dsym",
+    "ENABLE_TESTABILITY[config=Debug]": "YES",
+    "MACOSX_DEPLOYMENT_TARGET": "14.0",
+    "ONLY_ACTIVE_ARCH[config=Debug]": "YES",
+    "SDKROOT": "macosx",
+    "SWIFT_ACTIVE_COMPILATION_CONDITIONS[config=Debug]": "DEBUG $(inherited)",
+    "SWIFT_COMPILATION_MODE[config=Release]": "wholemodule",
+    "SWIFT_OPTIMIZATION_LEVEL[config=Debug]": "-Onone",
+    "SWIFT_VERSION": "5.0",
+  },
+}
