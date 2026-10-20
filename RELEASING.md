@@ -5,7 +5,7 @@ Updates are delivered with [Sparkle](https://sparkle-project.org). The app reads
 must include an `appcast.xml`**.
 
 You need the Sparkle signing key in your login keychain (restore it from 1Password with
-`generate_keys -f <file>` if needed) and a `notarytool` keychain profile (here `S9Brightness-notary`).
+`generate_keys -f <file>` if needed) and a `notarytool` keychain profile (here `S9Brightness-notary-api`, using an App Store Connect API key).
 Sparkle's tools are in
 `~/Library/Developer/Xcode/DerivedData/S9Brightness-*/SourcePackages/artifacts/sparkle/Sparkle/bin/`
 after building the project in Xcode.
@@ -21,7 +21,7 @@ some unarchivers and file-sync tools break, and Gatekeeper then rejects the app.
    mkdir -p dmg release && ditto S9Brightness.app dmg/S9Brightness.app && ln -s /Applications dmg/Applications
    hdiutil create -volname "S9 Brightness" -srcfolder dmg -format UDZO -fs APFS release/S9Brightness-1.1.dmg
    codesign --sign "Developer ID Application: Marvin Tseng (7C48W538SL)" --timestamp release/S9Brightness-1.1.dmg
-   xcrun notarytool submit release/S9Brightness-1.1.dmg --keychain-profile S9Brightness-notary --wait
+   xcrun notarytool submit release/S9Brightness-1.1.dmg --keychain-profile S9Brightness-notary-api --wait
    xcrun stapler staple release/S9Brightness-1.1.dmg
    ```
 4. Create the signed appcast:
