@@ -124,14 +124,14 @@ final class IPControlClient {
     }
 
     /// The host can come from the network (SSDP) or user input, so validate it instead of force-unwrapping.
-    private static func endpoint(host: String) throws -> URL {
+    static func endpoint(host: String) throws -> URL {
         var components = URLComponents()
         components.scheme = "https"
         // IPv6 literals need brackets in a URL.
         components.host = host.contains(":") && !host.hasPrefix("[") ? "[\(host)]" : host
         components.port = port
         components.path = "/"
-        guard let url = components.url else { throw IPControlError.unreachable("invalid address \(host)") }
+        guard !host.isEmpty, let url = components.url else { throw IPControlError.unreachable("invalid address \(host)") }
         return url
     }
 
@@ -169,6 +169,11 @@ final class IPControlClient {
             if (session.delegate as? PinningDelegate)?.mismatch == true { throw IPControlError.certificateChanged }
             throw IPControlError.unreachable(error.localizedDescription)
         }
+        return try Self.parseReply(data)
+    }
+
+    /// Returns the JSON-RPC result, or throws the error the monitor reported.
+    static func parseReply(_ data: Data) throws -> [String: Any] {
         guard let reply = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else {
             throw IPControlError.server("invalid JSON")
         }

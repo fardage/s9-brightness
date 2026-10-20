@@ -54,29 +54,33 @@ enum MonitorDiscovery {
     }
 
     private static func describe(host: String, ipControl: URL?, renderer: URL?) async -> DiscoveredMonitor? {
-        let xml: XMLDocument
-        let hasIPControl: Bool
-        if let ipControl, let doc = await fetch(ipControl) {
-            (xml, hasIPControl) = (doc, true)
-        } else if let renderer, let doc = await fetch(renderer),
-                  value("manufacturer", in: doc)?.contains("Samsung") == true,
-                  value("X_deviceCategory", in: doc)?.contains("Display") == true
-                    || value("modelDescription", in: doc)?.contains("TV") == true {
-            (xml, hasIPControl) = (doc, false)
-        } else {
-            return nil
+        if let ipControl, let data = await fetch(ipControl),
+           let monitor = parseDescription(data, host: host, ipControl: true) {
+            return monitor
+        }
+        guard let renderer, let data = await fetch(renderer) else { return nil }
+        return parseDescription(data, host: host, ipControl: false)
+    }
+
+    /// Builds a monitor from a UPnP device description. An IPControlServer description is
+    /// always a monitor; a MediaRenderer description only counts if it's a Samsung display.
+    static func parseDescription(_ data: Data, host: String, ipControl: Bool) -> DiscoveredMonitor? {
+        // Descriptions come from any device on the network: never resolve external entities.
+        guard let xml = try? XMLDocument(data: data, options: .nodeLoadExternalEntitiesNever) else { return nil }
+        if !ipControl {
+            guard value("manufacturer", in: xml)?.contains("Samsung") == true,
+                  value("X_deviceCategory", in: xml)?.contains("Display") == true
+                    || value("modelDescription", in: xml)?.contains("TV") == true else { return nil }
         }
         return DiscoveredMonitor(host: host, name: value("friendlyName", in: xml) ?? host,
                                  model: value("modelName", in: xml), serial: value("serialNumber", in: xml),
-                                 ipControl: hasIPControl)
+                                 ipControl: ipControl)
     }
 
-    private static func fetch(_ url: URL) async -> XMLDocument? {
+    private static func fetch(_ url: URL) async -> Data? {
         var request = URLRequest(url: url)
         request.timeoutInterval = 3
-        guard let (data, _) = try? await URLSession.shared.data(for: request) else { return nil }
-        // Descriptions come from any device on the network: never resolve external entities.
-        return try? XMLDocument(data: data, options: .nodeLoadExternalEntitiesNever)
+        return try? await URLSession.shared.data(for: request).0
     }
 
     /// First element with this local name, ignoring namespace prefixes such as `df:`.
@@ -85,10 +89,24 @@ enum MonitorDiscovery {
             .trimmingCharacters(in: .whitespacesAndNewlines)
     }
 
-    private struct SSDPReply {
+    struct SSDPReply: Equatable {
         let host: String
         let st: String
         let location: URL
+    }
+
+    /// Parses one SSDP response; nil unless it's for one of `types` and has a usable LOCATION.
+    static func parseSSDPReply(_ text: String, types: [String]) -> SSDPReply? {
+        var headers: [String: String] = [:]
+        for line in text.components(separatedBy: "\r\n") {
+            guard let colon = line.firstIndex(of: ":") else { continue }
+            headers[line[..<colon].trimmingCharacters(in: .whitespaces).uppercased()] =
+                line[line.index(after: colon)...].trimmingCharacters(in: .whitespaces)
+        }
+        guard let st = headers["ST"], types.contains(st),
+              let location = headers["LOCATION"].flatMap(URL.init(string:)),
+              let host = location.host else { return nil }
+        return SSDPReply(host: host, st: st, location: location)
     }
 
     /// Blocking SSDP M-SEARCH; run off the main thread.
@@ -125,17 +143,9 @@ enum MonitorDiscovery {
         let deadline = Date().addingTimeInterval(timeout)
         while Date() < deadline {
             let n = recv(fd, &buffer, buffer.count, 0)
-            guard n > 0 else { continue }
-            var headers: [String: String] = [:]
-            for line in String(decoding: buffer[0..<n], as: UTF8.self).components(separatedBy: "\r\n") {
-                guard let colon = line.firstIndex(of: ":") else { continue }
-                headers[line[..<colon].trimmingCharacters(in: .whitespaces).uppercased()] =
-                    line[line.index(after: colon)...].trimmingCharacters(in: .whitespaces)
-            }
-            guard let st = headers["ST"], types.contains(st),
-                  let location = headers["LOCATION"].flatMap(URL.init(string:)),
-                  let host = location.host else { continue }
-            replies.append(SSDPReply(host: host, st: st, location: location))
+            guard n > 0,
+                  let reply = parseSSDPReply(String(decoding: buffer[0..<n], as: UTF8.self), types: types) else { continue }
+            replies.append(reply)
         }
         return replies
     }

@@ -15,7 +15,7 @@ Get the signed and notarized app from [Releases](https://github.com/fardage/s9-b
 
 ## Build
 
-Open `S9Brightness/S9Brightness.xcodeproj` in Xcode and run the `S9Brightness` scheme.
+Open `S9Brightness/S9Brightness.xcodeproj` in Xcode and run the `S9Brightness` scheme. Run the tests with ⌘U.
 
 ## Use
 

@@ -14,12 +14,14 @@
   "files": [
     { "kind": "folder", "path": "Sources", "target-membership": [ "S9Brightness" ] },
     { "kind": "folder", "path": "Resources", "target-membership": [ "S9Brightness" ] },
+    { "kind": "folder", "path": "Tests", "target-membership": [ "S9BrightnessTests" ] },
     { "path": "Info.plist" },
     {
       "kind": "group",
       "name": "Products",
       "children": [
         { "path": "<PRODUCTS>/S9Brightness.app", "type": "wrapper.application", "index": false },
+        { "path": "<PRODUCTS>/S9BrightnessTests.xctest", "type": "wrapper.cfbundle", "index": false },
       ],
     },
   ],
@@ -49,6 +51,29 @@
         "MARKETING_VERSION": "1.0",
         "PRODUCT_BUNDLE_IDENTIFIER": "ch.tseng.S9Brightness",
         "PRODUCT_NAME": "$(TARGET_NAME)",
+      },
+    }, {
+      "name": "S9BrightnessTests",
+      "id": "5B9B0A1C2D3E4F5061728395",
+      "product": "Products/S9BrightnessTests.xctest",
+      "product-type": "bundle.unit-test",
+      "test-host-target": "S9Brightness",
+      "dependencies": [
+        "S9Brightness",
+      ],
+      "build-phases": [
+        "compile-sources",
+        "frameworks",
+        "resources",
+      ],
+      "build-settings": {
+        "BUNDLE_LOADER": "$(TEST_HOST)",
+        "CODE_SIGN_STYLE": "Automatic",
+        "DEVELOPMENT_TEAM": "7C48W538SL",
+        "GENERATE_INFOPLIST_FILE": "YES",
+        "PRODUCT_BUNDLE_IDENTIFIER": "ch.tseng.S9BrightnessTests",
+        "PRODUCT_NAME": "$(TARGET_NAME)",
+        "TEST_HOST": "$(BUILT_PRODUCTS_DIR)/S9Brightness.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/S9Brightness",
       },
     },
   ],

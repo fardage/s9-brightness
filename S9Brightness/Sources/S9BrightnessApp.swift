@@ -13,6 +13,18 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 }
 
 @main
+enum AppEntry {
+    static func main() {
+        // Unit tests run inside the app. Skip the real app there: it would open the setup
+        // window and read the keychain, which prompts for a differently signed Debug build.
+        if ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] != nil {
+            NSApplication.shared.run()
+        } else {
+            S9BrightnessApp.main()
+        }
+    }
+}
+
 struct S9BrightnessApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
 
