@@ -61,9 +61,19 @@ struct MenuView: View {
                     .buttonStyle(.borderedProminent)
             } else {
                 HStack(spacing: 8) {
-                    Image(systemName: "sun.min")
+                    Button { model.step(by: -1) } label: {
+                        Label("Decrease Brightness", systemImage: "sun.min").labelStyle(.iconOnly)
+                    }
+                    .buttonStyle(.borderless)
+                    .disabled(model.percent <= 0)
+                    .help("Decrease by 2 %")
                     Slider(value: Binding(get: { model.percent }, set: { model.set($0) }), in: 0...100, step: 2)
-                    Image(systemName: "sun.max")
+                    Button { model.step(by: 1) } label: {
+                        Label("Increase Brightness", systemImage: "sun.max").labelStyle(.iconOnly)
+                    }
+                    .buttonStyle(.borderless)
+                    .disabled(model.percent >= 100)
+                    .help("Increase by 2 %")
                 }
 
                 HStack {
@@ -83,21 +93,39 @@ struct MenuView: View {
                 Text(model.status).font(.caption).foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
             }
-
-            Divider()
-
-            Toggle("Launch at Login", isOn: Binding(get: { launchAtLogin }, set: setLaunchAtLogin))
             if let loginError {
                 Text(loginError).font(.caption).foregroundStyle(.secondary)
             }
-            Button(updater.updateAvailable ? "Update Available…" : "Check for Updates…") { updater.checkForUpdates() }
+
+            Divider()
 
             HStack {
-                if !model.needsPairing {
-                    Button("Change Monitor…") { SetupWindow.show(model.setup) }
+                Menu {
+                    Toggle("Launch at Login", isOn: Binding(get: { launchAtLogin }, set: setLaunchAtLogin))
+                    if !model.needsPairing {
+                        Button("Change Monitor…") { SetupWindow.show(model.setup) }
+                    }
+                    Button(updater.updateAvailable ? "Update Available…" : "Check for Updates…") { updater.checkForUpdates() }
+                } label: {
+                    Label("Settings", systemImage: "gearshape").labelStyle(.iconOnly)
                 }
+                .menuStyle(.borderlessButton)
+                .menuIndicator(.hidden)
+                .fixedSize()
+                .overlay(alignment: .topTrailing) {
+                    if updater.updateAvailable {
+                        Circle().fill(.red).frame(width: 7, height: 7).offset(x: 3, y: -2)
+                    }
+                }
+                .help(updater.updateAvailable ? "Settings – an update is available" : "Settings")
+
                 Spacer()
-                Button("Quit") { NSApplication.shared.terminate(nil) }
+
+                Button { NSApplication.shared.terminate(nil) } label: {
+                    Label("Quit", systemImage: "power").labelStyle(.iconOnly)
+                }
+                .buttonStyle(.borderless)
+                .help("Quit S9 Brightness")
             }
         }
         .padding(14)

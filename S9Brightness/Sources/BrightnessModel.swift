@@ -31,6 +31,16 @@ final class BrightnessModel: ObservableObject {
         Int((percent * Double(IPControlClient.nativeMax) / 100).rounded())
     }
 
+    /// `percent` moved by `steps` hardware steps (2 % each), clamped to 0–100.
+    static func stepped(_ percent: Double, by steps: Int) -> Double {
+        toPercent(max(0, min(IPControlClient.nativeMax, toNative(percent) + steps)))
+    }
+
+    /// Moves the backlight by one or more hardware steps, the smallest change the monitor supports.
+    func step(by steps: Int) {
+        set(Self.stepped(percent, by: steps))
+    }
+
     /// Reads the current backlight, e.g. when the menu opens, so changes made on the monitor show up.
     func refresh() {
         guard !writing, !rediscovering else { return }
