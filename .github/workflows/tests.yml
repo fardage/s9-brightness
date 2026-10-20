@@ -1,0 +1,32 @@
+name: Tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    # The project uses Xcode 27's JSON project format, so it needs the Xcode 27 image.
+    runs-on: xcode-27
+    env:
+      DEVELOPER_DIR: /Applications/Xcode_27.1.app/Contents/Developer
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Run tests
+        working-directory: S9Brightness
+        # CI has no signing certificates; the tests don't need a signed app.
+        run: >
+          xcodebuild test
+          -project S9Brightness.xcodeproj
+          -scheme S9Brightness
+          -destination 'platform=macOS'
+          CODE_SIGNING_ALLOWED=NO
