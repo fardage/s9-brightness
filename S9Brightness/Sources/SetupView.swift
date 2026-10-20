@@ -49,6 +49,9 @@ struct SetupView: View {
                 Text("S9 Brightness sets the monitor's backlight over your local network.")
                     .foregroundStyle(.secondary)
             }
+            if showsRequirements {
+                requirements
+            }
             content
         }
         .padding(24)
@@ -58,6 +61,28 @@ struct SetupView: View {
             // Resize after the current layout pass rather than during it.
             DispatchQueue.main.async { onSizeChange(size) }
         }
+    }
+
+    /// The requirements matter while finding or choosing a monitor, not once pairing has started.
+    private var showsRequirements: Bool {
+        switch setup.phase {
+        case .searching, .results, .failed: return true
+        case .pairing, .success: return false
+        }
+    }
+
+    private var requirements: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("Before you start").font(.subheadline.weight(.semibold))
+            Label("Connect the monitor to Wi-Fi, on the same network as this Mac.", systemImage: "wifi")
+            Label("Turn on IP Remote on the monitor: \(MonitorDiscovery.ipRemoteMenuPath) › IP Remote.",
+                  systemImage: "switch.2")
+        }
+        .font(.callout)
+        .fixedSize(horizontal: false, vertical: true)
+        .padding(12)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(RoundedRectangle(cornerRadius: 8).fill(Color.accentColor.opacity(0.08)))
     }
 
     @ViewBuilder
