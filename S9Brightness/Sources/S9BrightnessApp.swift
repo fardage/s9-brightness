@@ -4,6 +4,7 @@ import SwiftUI
 @MainActor
 final class AppDelegate: NSObject, NSApplicationDelegate {
     let model = BrightnessModel()
+    let updater = Updater()
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         if model.needsPairing {
@@ -30,7 +31,7 @@ struct S9BrightnessApp: App {
 
     var body: some Scene {
         MenuBarExtra("S9 Brightness", systemImage: "sun.max") {
-            MenuView(model: appDelegate.model)
+            MenuView(model: appDelegate.model, updater: appDelegate.updater)
         }
         .menuBarExtraStyle(.window)
     }
@@ -38,6 +39,7 @@ struct S9BrightnessApp: App {
 
 struct MenuView: View {
     @ObservedObject var model: BrightnessModel
+    @ObservedObject var updater: Updater
     @State private var launchAtLogin = Self.isLoginItemEnabled
     @State private var loginError: String?
 
@@ -88,6 +90,7 @@ struct MenuView: View {
             if let loginError {
                 Text(loginError).font(.caption).foregroundStyle(.secondary)
             }
+            Button(updater.updateAvailable ? "Update Available…" : "Check for Updates…") { updater.checkForUpdates() }
 
             HStack {
                 if !model.needsPairing {

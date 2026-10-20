@@ -7,5 +7,9 @@
 		<key>NSAllowsLocalNetworking</key>
 		<true/>
 	</dict>
+	<key>SUFeedURL</key>
+	<string>https://github.com/fardage/s9-brightness/releases/latest/download/appcast.xml</string>
+	<key>SUPublicEDKey</key>
+	<string>CmquskT8GBHeClZuigYpwpFNR3fTg/XXnN5u25Iscyw=</string>
 </dict>
 </plist>
