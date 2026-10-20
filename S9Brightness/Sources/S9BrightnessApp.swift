@@ -65,9 +65,14 @@ struct MenuView: View {
                 }
 
                 HStack {
-                    ForEach([25, 50, 75, 100], id: \.self) { preset in
+                    ForEach(Array(model.presets.values.enumerated()), id: \.offset) { index, preset in
                         Button("\(preset)%") { model.set(Double(preset)) }
                             .frame(maxWidth: .infinity)
+                            .help("Right-click to change this preset")
+                            .contextMenu {
+                                Button("Set to Current Brightness (\(Int(model.percent))%)") { model.setPreset(index) }
+                                Button("Reset Presets") { model.resetPresets() }
+                            }
                     }
                 }
             }

@@ -8,7 +8,6 @@
     "development": "en",
     "supported": [
       "Base",
-      "en",
     ],
   },
   "files": [
@@ -20,8 +19,8 @@
       "kind": "group",
       "name": "Products",
       "children": [
-        { "path": "<PRODUCTS>/S9Brightness.app", "type": "wrapper.application", "index": false },
-        { "path": "<PRODUCTS>/S9BrightnessTests.xctest", "type": "wrapper.cfbundle", "index": false },
+        { "path": "<PRODUCTS>/S9Brightness.app", "id": "E1E5A2888D78A0830C386898", "type": "wrapper.application", "index": false },
+        { "path": "<PRODUCTS>/S9BrightnessTests.xctest", "id": "254B817862552BEA72BC570E", "type": "wrapper.cfbundle", "index": false },
       ],
     },
   ],

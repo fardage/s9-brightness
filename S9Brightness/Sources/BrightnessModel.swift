@@ -6,6 +6,7 @@ final class BrightnessModel: ObservableObject {
     @Published var status = ""
     @Published var needsPairing = false
     @Published var monitorName: String?
+    @Published private(set) var presets = Presets.load()
 
     private let client = IPControlClient()
     lazy var setup = SetupModel(client: client) { [weak self] native in self?.paired(native) }
@@ -43,6 +44,17 @@ final class BrightnessModel: ObservableObject {
         guard !writing else { return }
         writing = true
         Task { await drain() }
+    }
+
+    /// Stores the current brightness in a preset slot.
+    func setPreset(_ index: Int) {
+        presets.update(index, to: Int(percent))
+        presets.save()
+    }
+
+    func resetPresets() {
+        presets = Presets()
+        presets.save()
     }
 
     private func readBacklight() {

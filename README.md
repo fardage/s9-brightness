@@ -21,7 +21,7 @@ Open `S9Brightness/S9Brightness.xcodeproj` in Xcode and run the `S9Brightness` s
 
 ## Use
 
-On first launch a setup window finds the monitor. Click **Connect**, then select **Allow** on the monitor. Adjust brightness from the sun icon in the menu bar.
+On first launch a setup window finds the monitor. Click **Connect**, then select **Allow** on the monitor. Adjust brightness from the sun icon in the menu bar. Right-click a preset to set it to the current brightness.
 
 Samsung's IP Control interface is undocumented and may change with firmware updates. This project is not affiliated with Samsung.
 
