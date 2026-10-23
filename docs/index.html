@@ -1,0 +1,402 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>S9 Brightness – Samsung monitor brightness control for Mac</title>
+<meta name="description" content="Free macOS menu bar app that sets the hardware backlight of Samsung smart monitors like the ViewFinity S9 over your local network. One slider, four presets.">
+<link rel="canonical" href="https://fardage.github.io/s9-brightness/">
+<meta name="color-scheme" content="dark">
+<meta name="theme-color" content="#0b0a09">
+<link rel="icon" href="favicon.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="S9 Brightness">
+<meta property="og:title" content="S9 Brightness – Samsung monitor brightness control for Mac">
+<meta property="og:description" content="The real backlight of your Samsung monitor, from the Mac menu bar. Free and open source.">
+<meta property="og:url" content="https://fardage.github.io/s9-brightness/">
+<meta property="og:image" content="https://fardage.github.io/s9-brightness/og.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="The S9 Brightness app icon, a glowing slider, next to the text: The real backlight of your Samsung monitor, from the Mac menu bar.">
+<meta name="twitter:card" content="summary_large_image">
+
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "SoftwareApplication",
+  "name": "S9 Brightness",
+  "description": "A macOS menu bar app that sets the hardware backlight of Samsung smart monitors, such as the ViewFinity S9, over your local network.",
+  "applicationCategory": "UtilitiesApplication",
+  "operatingSystem": "macOS 14 or later",
+  "url": "https://fardage.github.io/s9-brightness/",
+  "downloadUrl": "https://github.com/fardage/s9-brightness/releases/latest",
+  "image": "https://fardage.github.io/s9-brightness/og.jpg",
+  "license": "https://opensource.org/licenses/MIT",
+  "isAccessibleForFree": true,
+  "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
+  "author": { "@type": "Person", "name": "Marvin Tseng" }
+}
+</script>
+<style>
+  :root {
+    --b: .64;                 /* brightness 0–1, driven by the slider */
+    --bg: #0b0a09;
+    --ink: #f1ebe1;
+    --muted: rgba(241, 235, 225, .58);
+    --faint: rgba(241, 235, 225, .14);
+    --warm: 255, 168, 88;
+    --serif: ui-serif, "New York", "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
+    --sans: -apple-system, BlinkMacSystemFont, "Helvetica Neue", Helvetica, Arial, sans-serif;
+  }
+  * { box-sizing: border-box; }
+  html { background: var(--bg); }
+  body {
+    margin: 0;
+    min-height: 100vh;
+    background: var(--bg);
+    color: var(--ink);
+    font: 400 1.125rem/1.55 var(--sans);
+    letter-spacing: .005em;
+    -webkit-font-smoothing: antialiased;
+    overflow-x: hidden;
+  }
+  a { color: inherit; text-underline-offset: .2em; text-decoration-thickness: 1px; }
+  a:hover { text-decoration-thickness: 2px; }
+
+  /* The light the slider controls. It sits behind everything and follows the panel. */
+  .light {
+    position: fixed; inset: 0; pointer-events: none; z-index: 0;
+    background:
+      radial-gradient(circle at var(--lx, 80%) var(--ly, 160px),
+        rgba(var(--warm), calc(.04 + .5 * var(--b))) 0,
+        rgba(var(--warm), calc(.02 + .14 * var(--b))) calc(12% + 26% * var(--b)),
+        transparent calc(30% + 55% * var(--b)));
+    transition: background .25s;
+  }
+  .grain {
+    position: fixed; inset: -50%; pointer-events: none; z-index: 1; opacity: .16;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .5 0 0 0 0 .5 0 0 0 0 .5 0 0 0 1.6 -.55'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  }
+
+  /* ---------- The site header is a macOS menu bar ---------- */
+  .menubar {
+    position: sticky; top: 0; z-index: 10;
+    display: flex; align-items: center; gap: 1.25rem;
+    height: 34px; padding: 0 16px;
+    font: 500 13px/1 var(--sans);
+    background: rgba(18, 16, 14, .5);
+    -webkit-backdrop-filter: blur(24px) saturate(160%);
+    backdrop-filter: blur(24px) saturate(160%);
+    border-bottom: 1px solid rgba(255, 255, 255, .06);
+  }
+  .menubar .app { font-weight: 700; }
+  .menubar nav { display: flex; gap: 1.25rem; }
+  .menubar nav a { text-decoration: none; opacity: .9; }
+  .menubar nav a:hover { opacity: 1; text-decoration: none; }
+  .menubar .extras { margin-left: auto; display: flex; align-items: center; gap: .9rem; }
+  .status {
+    display: grid; place-items: center;
+    width: 30px; height: 24px; padding: 0; border: 0; border-radius: 6px;
+    background: transparent; color: var(--ink); cursor: pointer;
+  }
+  .status[aria-expanded="true"] { background: rgba(255, 255, 255, .16); }
+  .status svg { width: 17px; height: 17px; }
+  .clock { font-variant-numeric: tabular-nums; white-space: nowrap; }
+
+  /* ---------- The app's menu, rebuilt ---------- */
+  .panel {
+    position: fixed; z-index: 9; top: 40px; right: 16px;
+    width: 290px; max-width: calc(100vw - 32px);
+    padding: 14px;
+    display: grid; gap: 10px;
+    font: 400 13px/1.3 var(--sans);
+    color: #f5f2ee;
+    background: rgba(40, 36, 33, .52);
+    -webkit-backdrop-filter: blur(30px) saturate(170%);
+    backdrop-filter: blur(30px) saturate(170%);
+    border: 1px solid rgba(255, 255, 255, .13);
+    border-radius: 18px;
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, .2),
+      inset 0 -1px 0 rgba(255, 255, 255, .05),
+      0 24px 60px rgba(0, 0, 0, .45),
+      0 2px 8px rgba(0, 0, 0, .3);
+    transform-origin: top right;
+    transition: opacity .18s, transform .18s;
+  }
+  .panel[hidden] { display: grid; opacity: 0; transform: scale(.96) translateY(-4px); pointer-events: none; }
+  .row { display: flex; align-items: center; gap: 8px; }
+  .name { font-weight: 700; font-size: 13px; flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .pct { color: rgba(245, 242, 238, .55); font-variant-numeric: tabular-nums; }
+  .icon-btn {
+    display: grid; place-items: center; width: 22px; height: 22px; padding: 0;
+    border: 0; background: none; color: inherit; cursor: pointer; border-radius: 5px;
+  }
+  .icon-btn:disabled { opacity: .3; cursor: default; }
+  .icon-btn svg { width: 16px; height: 16px; }
+  .presets { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+  .presets button {
+    font: 500 13px/1 var(--sans); color: inherit; cursor: pointer;
+    padding: 6px 0; border-radius: 999px;
+    border: 1px solid rgba(255, 255, 255, .12);
+    background: rgba(255, 255, 255, .1);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, .14);
+  }
+  .presets button:hover { background: rgba(255, 255, 255, .16); }
+  .presets button[aria-pressed="true"] { background: rgba(255, 255, 255, .24); }
+  .divider { height: 1px; background: rgba(255, 255, 255, .12); margin: 2px 0; }
+  .foot { display: flex; justify-content: space-between; color: rgba(245, 242, 238, .8); }
+  .foot svg { width: 16px; height: 16px; }
+
+  /* The slider: a glowing fill and a glass knob, like the icon */
+  input[type="range"] {
+    -webkit-appearance: none; appearance: none;
+    flex: 1; height: 22px; margin: 0; background: transparent; cursor: pointer;
+  }
+  input[type="range"]::-webkit-slider-runnable-track {
+    height: 5px; border-radius: 3px;
+    background:
+      linear-gradient(90deg, #7a4a1d, #ffbe73 calc(var(--b) * 100% - 1%), #fff3df calc(var(--b) * 100%), rgba(255, 255, 255, .14) calc(var(--b) * 100%));
+    box-shadow: 0 0 calc(4px + 10px * var(--b)) rgba(var(--warm), calc(.2 + .5 * var(--b)));
+  }
+  input[type="range"]::-moz-range-track { height: 5px; border-radius: 3px; background: rgba(255, 255, 255, .14); }
+  input[type="range"]::-moz-range-progress { height: 5px; border-radius: 3px; background: linear-gradient(90deg, #7a4a1d, #fff3df); }
+  input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none; appearance: none;
+    width: 22px; height: 22px; margin-top: -8.5px; border-radius: 50%;
+    background: radial-gradient(circle at 35% 30%, rgba(255, 255, 255, .7), rgba(255, 255, 255, .16) 45%, rgba(255, 255, 255, .08) 70%, rgba(255, 255, 255, .45));
+    border: 1px solid rgba(255, 255, 255, .55);
+    box-shadow: 0 3px 8px rgba(0, 0, 0, .45), inset 0 -2px 4px rgba(0, 0, 0, .25);
+    -webkit-backdrop-filter: blur(2px); backdrop-filter: blur(2px);
+  }
+  input[type="range"]::-moz-range-thumb {
+    width: 20px; height: 20px; border-radius: 50%;
+    background: radial-gradient(circle at 35% 30%, rgba(255, 255, 255, .7), rgba(255, 255, 255, .16) 45%, rgba(255, 255, 255, .45));
+    border: 1px solid rgba(255, 255, 255, .55);
+    box-shadow: 0 3px 8px rgba(0, 0, 0, .45);
+  }
+  input[type="range"]:focus-visible { outline: 2px solid rgba(var(--warm), .8); outline-offset: 4px; border-radius: 6px; }
+
+  /* ---------- Page ---------- */
+  main { position: relative; z-index: 2; }
+  .wrap { max-width: 1120px; margin: 0 auto; padding: 0 16px; }
+  .hero {
+    min-height: calc(100vh - 34px);
+    display: grid; align-content: end;
+    padding-bottom: 12vh;
+    position: relative; overflow: hidden;
+  }
+  .hero .wrap { width: 100%; }
+  .numeral {
+    position: absolute; right: .04em; bottom: 9vh; z-index: -1;
+    font: 300 clamp(11rem, 30vw, 30rem)/.8 var(--serif);
+    letter-spacing: -.04em;
+    font-variant-numeric: lining-nums tabular-nums;
+    color: rgba(var(--warm), calc(.05 + .32 * var(--b)));
+    text-shadow: 0 0 calc(60px * var(--b)) rgba(var(--warm), calc(.35 * var(--b)));
+    transition: color .25s, text-shadow .25s;
+    user-select: none;
+  }
+  .numeral sup { font-size: .22em; vertical-align: top; position: relative; top: .5em; letter-spacing: 0; }
+  .brand { display: flex; align-items: center; gap: 18px; }
+  .brand img { width: 72px; height: 72px; }
+  .caps {
+    font: 400 .9rem/1.4 var(--serif);
+    letter-spacing: .28em; text-transform: uppercase;
+  }
+  h1.caps { margin: 0; font-size: 1.05rem; }
+  .lede { max-width: 30ch; margin: 1.6rem 0 0; font-size: clamp(1.35rem, 2.6vw, 1.9rem); line-height: 1.3; }
+  .hint { margin: 1rem 0 0; color: var(--muted); font-size: .95rem; }
+
+  .about {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 2rem 4rem;
+    padding-block: 18vh;
+  }
+  .links { display: grid; gap: .35rem; align-content: start; }
+  .about p { margin: 0; max-width: 34ch; }
+
+  .section-title { text-align: center; margin: 0 0 4.5rem; }
+  .steps {
+    list-style: none; margin: 0; padding: 0;
+    display: grid; grid-template-columns: repeat(3, 1fr); gap: 3rem;
+    counter-reset: step;
+  }
+  .steps li { counter-increment: step; }
+  .steps li::before {
+    content: counter(step);
+    display: block; margin-bottom: 1rem;
+    font: 300 4.5rem/1 var(--serif);
+    color: rgba(var(--warm), calc(.35 + .5 * var(--b)));
+    transition: color .25s;
+  }
+  .steps p { margin: 0; }
+  .steps .path { display: block; margin-top: .5rem; color: var(--muted); font-size: .95rem; }
+
+  .requirements { text-align: center; padding-top: 16vh; color: var(--muted); }
+  .requirements p { margin: .3rem 0; }
+
+  footer {
+    position: relative; z-index: 2;
+    display: flex; justify-content: space-between; gap: 1rem; flex-wrap: wrap;
+    padding: 14vh 16px 32px; max-width: 1120px; margin: 0 auto;
+    color: var(--muted); font-size: .85rem;
+  }
+
+  @media (max-width: 760px) {
+    .menubar { gap: .9rem; }
+    .menubar nav { gap: .9rem; }
+    .clock { display: none; }
+    .panel { position: absolute; }
+    .hero { align-content: end; padding-top: 330px; padding-bottom: 8vh; }
+    .numeral { bottom: auto; top: 220px; font-size: 52vw; }
+    .about { grid-template-columns: 1fr; padding-block: 12vh; }
+    .steps { grid-template-columns: 1fr; gap: 2.5rem; }
+  }
+  @media (max-width: 420px) {
+    .menubar .app { display: none; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    * { transition: none !important; }
+  }
+</style>
+</head>
+<body>
+<div class="light" aria-hidden="true"></div>
+<div class="grain" aria-hidden="true"></div>
+
+<header class="menubar">
+  <span class="app">S9 Brightness</span>
+  <nav>
+    <a href="https://github.com/fardage/s9-brightness/releases/latest">Download</a>
+    <a href="https://github.com/fardage/s9-brightness">GitHub</a>
+  </nav>
+  <div class="extras">
+    <button class="status" id="status" aria-expanded="true" aria-controls="panel" aria-label="S9 Brightness menu">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="4.2"/><path d="M12 2.5v2.2M12 19.3v2.2M2.5 12h2.2M19.3 12h2.2M5.3 5.3l1.6 1.6M17.1 17.1l1.6 1.6M5.3 18.7l1.6-1.6M17.1 6.9l1.6-1.6"/></svg>
+    </button>
+    <span class="clock" id="clock"></span>
+  </div>
+</header>
+
+<div class="panel" id="panel" role="group" aria-label="Brightness">
+  <div class="row">
+    <span class="name">ViewFinity S9</span>
+    <span class="pct" id="pct">64%</span>
+  </div>
+  <div class="row">
+    <button class="icon-btn" id="down" aria-label="Decrease brightness" title="Decrease by 2 %">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="3.6"/><path d="M12 5.2v.1M12 18.7v.1M5.2 12h.1M18.7 12h.1M7.2 7.2h.1M16.8 16.8h.1M7.2 16.8h.1M16.8 7.2h.1"/></svg>
+    </button>
+    <input type="range" id="slider" min="0" max="100" step="2" value="64" aria-label="Brightness">
+    <button class="icon-btn" id="up" aria-label="Increase brightness" title="Increase by 2 %">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="4.2"/><path d="M12 2.5v2.2M12 19.3v2.2M2.5 12h2.2M19.3 12h2.2M5.3 5.3l1.6 1.6M17.1 17.1l1.6 1.6M5.3 18.7l1.6-1.6M17.1 6.9l1.6-1.6"/></svg>
+    </button>
+  </div>
+  <div class="presets" id="presets">
+    <button data-value="10">10%</button>
+    <button data-value="40">40%</button>
+    <button data-value="70">70%</button>
+    <button data-value="100">100%</button>
+  </div>
+  <div class="divider"></div>
+  <div class="foot" aria-hidden="true">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"><path d="M10.3 3h3.4l.5 2.4 1.7.7 2-1.4 2.4 2.4-1.4 2 .7 1.7 2.4.5v3.4l-2.4.5-.7 1.7 1.4 2-2.4 2.4-2-1.4-1.7.7-.5 2.4h-3.4l-.5-2.4-1.7-.7-2 1.4-2.4-2.4 1.4-2-.7-1.7L3 13.7v-3.4l2.4-.5.7-1.7-1.4-2 2.4-2.4 2 1.4 1.7-.7z"/><circle cx="12" cy="12" r="3"/></svg>
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M12 3v8M7.2 5.8a8 8 0 1 0 9.6 0"/></svg>
+  </div>
+</div>
+
+<main>
+  <section class="hero">
+    <div class="numeral" aria-hidden="true"><span id="big">64</span><sup>%</sup></div>
+    <div class="wrap">
+    <div class="brand">
+      <img src="icon.png" width="72" height="72" alt="">
+      <h1 class="caps">S9 Brightness</h1>
+    </div>
+    <p class="lede">The real backlight of your Samsung monitor, from the Mac menu bar.</p>
+    <p class="hint">Try the slider in the top right.</p>
+    </div>
+  </section>
+
+  <section class="about wrap">
+    <div class="links">
+      <a href="https://github.com/fardage/s9-brightness/releases/latest">Download for macOS</a>
+      <a href="https://github.com/fardage/s9-brightness">Source on GitHub</a>
+    </div>
+    <p>A small macOS menu bar app that sets the hardware brightness of Samsung smart monitors, such as the ViewFinity&nbsp;S9, over your local network. One slider, four presets, nothing else.</p>
+  </section>
+
+  <section class="wrap">
+    <h2 class="caps section-title">Setup</h2>
+    <ol class="steps">
+      <li><p>Turn on IP Remote on the monitor.<span class="path">Settings › Connection › Network › Expert Settings › IP Remote</span></p></li>
+      <li><p>Open S9 Brightness and click Connect, then select Allow on the monitor.</p></li>
+      <li><p>Adjust brightness from the sun in the menu bar. Right-click a preset to save the current brightness.</p></li>
+    </ol>
+  </section>
+
+  <section class="requirements wrap">
+    <p>macOS 14 or later. The monitor on the same network as your Mac.</p>
+    <p>Signed and notarized. Free and open source under the MIT License.</p>
+  </section>
+</main>
+
+<footer>
+  <span>Not affiliated with Samsung.</span>
+  <a href="https://github.com/fardage/s9-brightness">github.com/fardage/s9-brightness</a>
+</footer>
+
+<script>
+  const root = document.documentElement;
+  const slider = document.getElementById('slider');
+  const pct = document.getElementById('pct');
+  const big = document.getElementById('big');
+  const down = document.getElementById('down');
+  const up = document.getElementById('up');
+  const presets = [...document.querySelectorAll('#presets button')];
+  const panel = document.getElementById('panel');
+  const status = document.getElementById('status');
+
+  function set(value) {
+    value = Math.min(100, Math.max(0, Math.round(value / 2) * 2));
+    slider.value = value;
+    root.style.setProperty('--b', value / 100);
+    pct.textContent = value + '%';
+    big.textContent = value;
+    down.disabled = value <= 0;
+    up.disabled = value >= 100;
+    presets.forEach(b => b.setAttribute('aria-pressed', String(+b.dataset.value === value)));
+  }
+
+  slider.addEventListener('input', () => set(+slider.value));
+  down.addEventListener('click', () => set(+slider.value - 2));
+  up.addEventListener('click', () => set(+slider.value + 2));
+  presets.forEach(b => b.addEventListener('click', () => set(+b.dataset.value)));
+
+  status.addEventListener('click', () => {
+    const open = panel.hidden;
+    panel.hidden = !open;
+    status.setAttribute('aria-expanded', String(open));
+  });
+
+  // Center the light on the panel.
+  function placeLight() {
+    const r = panel.getBoundingClientRect();
+    root.style.setProperty('--lx', (r.left + r.width / 2) + 'px');
+    root.style.setProperty('--ly', (r.top + r.height / 2) + 'px');
+  }
+  addEventListener('resize', placeLight);
+
+  const clock = document.getElementById('clock');
+  const fmt = new Intl.DateTimeFormat(undefined, { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
+  function tick() { clock.textContent = fmt.format(new Date()).replace(/,/g, ''); }
+  setInterval(tick, 10000);
+
+  set(64);
+  placeLight();
+  tick();
+</script>
+</body>
+</html>
