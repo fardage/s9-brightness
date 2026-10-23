@@ -1,6 +1,12 @@
-# S9 Brightness
+<p align="center">
+  <img src="S9Brightness/Resources/Assets.xcassets/AppIcon.appiconset/icon_256x256@2x.png" width="160" alt="S9 Brightness icon">
+</p>
 
-[![Tests](https://github.com/fardage/s9-brightness/actions/workflows/tests.yml/badge.svg)](https://github.com/fardage/s9-brightness/actions/workflows/tests.yml)
+<h1 align="center">S9 Brightness</h1>
+
+<p align="center">
+  <a href="https://github.com/fardage/s9-brightness/actions/workflows/tests.yml"><img src="https://github.com/fardage/s9-brightness/actions/workflows/tests.yml/badge.svg" alt="Tests"></a>
+</p>
 
 A macOS menu bar app that sets the hardware backlight of Samsung smart monitors (such as the ViewFinity S9) over your local network.
 
