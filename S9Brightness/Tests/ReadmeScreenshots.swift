@@ -21,7 +21,7 @@ struct ReadmeScreenshots {
         let client = IPControlClient(config: IPControlConfig(host: "192.0.2.1", name: "ViewFinity S9"), token: "sample")
         let model = BrightnessModel(client: client, presets: Presets())
         model.percent = 64
-        let menu = snapshot(MenuView(model: model, updater: Updater(startingUpdater: false)), scheme)
+        let menu = snapshot(MenuView(model: model, updates: UpdateChecker(checking: false)), scheme)
         try write(MenuScene(menu: menu), scheme, "menu")
     }
 

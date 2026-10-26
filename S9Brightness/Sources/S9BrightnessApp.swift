@@ -4,7 +4,7 @@ import SwiftUI
 @MainActor
 final class AppDelegate: NSObject, NSApplicationDelegate {
     let model = BrightnessModel()
-    let updater = Updater()
+    let updates = UpdateChecker()
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         if model.needsPairing {
@@ -31,7 +31,7 @@ struct S9BrightnessApp: App {
 
     var body: some Scene {
         MenuBarExtra("S9 Brightness", systemImage: "sun.max") {
-            MenuView(model: appDelegate.model, updater: appDelegate.updater)
+            MenuView(model: appDelegate.model, updates: appDelegate.updates)
         }
         .menuBarExtraStyle(.window)
     }
@@ -39,7 +39,7 @@ struct S9BrightnessApp: App {
 
 struct MenuView: View {
     @ObservedObject var model: BrightnessModel
-    @ObservedObject var updater: Updater
+    @ObservedObject var updates: UpdateChecker
     @State private var launchAtLogin = Self.isLoginItemEnabled
     @State private var loginError: String?
 
@@ -105,7 +105,10 @@ struct MenuView: View {
                     if !model.needsPairing {
                         Button("Change Monitor…") { SetupWindow.show(model.setup) }
                     }
-                    Button(updater.updateAvailable ? "Update Available…" : "Check for Updates…") { updater.checkForUpdates() }
+                    if let release = updates.available {
+                        Divider()
+                        Button("Download Version \(release.version)…") { NSWorkspace.shared.open(release.url) }
+                    }
                 } label: {
                     Label("Settings", systemImage: "gearshape").labelStyle(.iconOnly)
                 }
@@ -113,11 +116,11 @@ struct MenuView: View {
                 .menuIndicator(.hidden)
                 .fixedSize()
                 .overlay(alignment: .topTrailing) {
-                    if updater.updateAvailable {
+                    if updates.available != nil {
                         Circle().fill(.red).frame(width: 7, height: 7).offset(x: 3, y: -2)
                     }
                 }
-                .help(updater.updateAvailable ? "Settings – an update is available" : "Settings")
+                .help(updates.available.map { "Settings – version \($0.version) is available" } ?? "Settings")
 
                 Spacer()
 

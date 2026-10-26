@@ -3,8 +3,8 @@
 #
 #   scripts/release.sh [--dry-run] [--yes] (--notes TEXT | --notes-file FILE) VERSION
 #
-# --dry-run builds everything up to the appcast, then restores the version bump. It does not
-# commit, push or publish, and it skips the checks against the remote.
+# --dry-run builds and notarizes the DMG, then restores the version bump. It does not commit,
+# push or publish, and it skips the checks against the remote.
 set -euo pipefail
 
 REPO=fardage/s9-brightness
@@ -18,7 +18,6 @@ ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 XCODEPROJ="$ROOT/S9Brightness/S9Brightness.xcodeproj"
 PROJECT_FILE="$XCODEPROJ/project.xcproj"
 DERIVED_DATA="$ROOT/build/DerivedData"
-SPARKLE_BIN="$DERIVED_DATA/SourcePackages/artifacts/sparkle/Sparkle/bin"
 
 dry_run=0 assume_yes=0 notes="" notes_file="" version=""
 while [[ $# -gt 0 ]]; do
@@ -42,8 +41,7 @@ if [[ -n "$notes_file" ]]; then notes="$(cat "$notes_file")"; fi
 
 tag="v$version"
 work="$ROOT/build/release/$version"
-out="$work/release"   # generate_appcast reads every archive in this folder, so it holds only the DMG
-dmg="$out/S9Brightness-$version.dmg"
+dmg="$work/S9Brightness-$version.dmg"
 bumped=0 committed=0
 
 # Runs a command with its output going to a log, which is shown only if the command fails.
@@ -101,7 +99,7 @@ if [[ $dry_run -eq 0 ]]; then
 fi
 
 rm -rf "$work"
-mkdir -p "$work" "$out"
+mkdir -p "$work"
 
 step "Setting version $version (build $build)"
 set_build_setting MARKETING_VERSION "$version"
@@ -147,28 +145,18 @@ logged verify-spctl-dmg spctl -a -t open --context context:primary-signature -v 
 logged validate-app xcrun stapler validate "$app"
 logged validate-dmg xcrun stapler validate "$dmg"
 
-step "Creating the appcast"
-[[ -x "$SPARKLE_BIN/generate_appcast" ]] || die "generate_appcast not found in $SPARKLE_BIN"
-logged appcast "$SPARKLE_BIN/generate_appcast" --download-url-prefix "https://github.com/$REPO/releases/download/$tag/" "$out"
-appcast="$out/appcast.xml"
-grep -q "<sparkle:version>$build</sparkle:version>" "$appcast" || die "appcast has the wrong build number"
-grep -q "<sparkle:shortVersionString>$version</sparkle:shortVersionString>" "$appcast" || die "appcast has the wrong version"
-grep -qF "url=\"https://github.com/$REPO/releases/download/$tag/S9Brightness-$version.dmg\"" "$appcast" || die "appcast has the wrong download URL"
-grep -q "sparkle:edSignature=" "$appcast" || die "appcast is not signed"
-
 sha="$(shasum -a 256 "$dmg" | cut -d' ' -f1)"
 
 if [[ $dry_run -eq 1 ]]; then
   step "Dry run done"
   echo "DMG:     $dmg"
-  echo "Appcast: $appcast"
   echo "SHA-256: $sha"
   exit 0
 fi
 
 body="$notes
 
-Update with **Check for Updates…** in the gear menu, or open the DMG and drag S9 Brightness to Applications. Signed with Developer ID and notarized by Apple. Requires macOS 14 or later.
+Open the DMG and drag S9 Brightness to Applications, replacing the old version. Signed with Developer ID and notarized by Apple. Requires macOS 14 or later.
 
 SHA-256: \`$sha\`"
 
@@ -176,7 +164,7 @@ step "Ready to publish S9 Brightness $version (build $build)"
 echo "$body"
 echo
 if [[ $assume_yes -eq 0 ]]; then
-  read -r -p "Commit, tag, push and publish? Users get the update right away. [y/N] " answer
+  read -r -p "Commit, tag, push and publish? The menu tells DMG users about it within a day. [y/N] " answer
   [[ "$answer" == y || "$answer" == Y ]] || die "aborted"
 fi
 
@@ -185,7 +173,7 @@ git commit --quiet -m "Bump version to $version" -- "$PROJECT_FILE"
 committed=1
 git tag "$tag"
 git push origin main "$tag"
-gh release create "$tag" "$dmg" "$appcast" --repo "$REPO" --verify-tag --title "S9 Brightness $version" --notes "$body" \
-  || die "the release was not created, but $tag is pushed. Retry with: gh release create $tag $dmg $appcast --repo $REPO --verify-tag"
+gh release create "$tag" "$dmg" --repo "$REPO" --verify-tag --title "S9 Brightness $version" --notes "$body" \
+  || die "the release was not created, but $tag is pushed. Retry with: gh release create $tag $dmg --repo $REPO --verify-tag"
 
 echo "Published https://github.com/$REPO/releases/tag/$tag"
