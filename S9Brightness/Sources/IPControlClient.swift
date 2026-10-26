@@ -77,9 +77,14 @@ final class IPControlClient {
     static let port = 1516
     static let nativeMax = 50
 
-    private(set) var config = IPControlConfig.load()
-    private var token = Keychain.readToken()
+    private(set) var config: IPControlConfig?
+    private var token: String?
     private var session: URLSession?
+
+    init(config: IPControlConfig? = .load(), token: String? = Keychain.readToken()) {
+        self.config = config
+        self.token = token
+    }
 
     var isPaired: Bool { config != nil && token != nil }
 

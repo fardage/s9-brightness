@@ -6,9 +6,9 @@ final class BrightnessModel: ObservableObject {
     @Published var status = ""
     @Published var needsPairing = false
     @Published var monitorName: String?
-    @Published private(set) var presets = Presets.load()
+    @Published private(set) var presets: Presets
 
-    private let client = IPControlClient()
+    private let client: IPControlClient
     lazy var setup = SetupModel(client: client) { [weak self] native in self?.paired(native) }
 
     private var pendingNative: Int?
@@ -18,7 +18,11 @@ final class BrightnessModel: ObservableObject {
     // The IP Control service needs ~0.3 s between requests.
     private let minInterval: TimeInterval = 0.3
 
-    init() {
+    init(client: IPControlClient? = nil, presets: Presets = .load()) {
+        // Not a default argument: those aren't main-actor isolated, so they can't create the client.
+        let client = client ?? IPControlClient()
+        self.client = client
+        self.presets = presets
         needsPairing = !client.isPaired
         monitorName = client.config?.name
     }

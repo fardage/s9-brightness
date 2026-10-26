@@ -10,6 +10,13 @@
 
 A macOS menu bar app that sets the hardware backlight of Samsung smart monitors (such as the ViewFinity S9) over your local network.
 
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/menu-dark.png">
+    <img src="docs/screenshots/menu-light.png" width="680" alt="The S9 Brightness menu open below its sun icon in the menu bar">
+  </picture>
+</p>
+
 ## Requirements
 
 - macOS 14 or later

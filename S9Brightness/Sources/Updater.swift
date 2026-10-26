@@ -9,9 +9,10 @@ final class Updater: NSObject, ObservableObject {
 
     private var controller: SPUStandardUpdaterController!
 
-    override init() {
+    /// `startingUpdater: false` gives an inert updater, e.g. for rendering the menu.
+    init(startingUpdater: Bool = true) {
         super.init()
-        controller = SPUStandardUpdaterController(startingUpdater: true, updaterDelegate: nil, userDriverDelegate: self)
+        controller = SPUStandardUpdaterController(startingUpdater: startingUpdater, updaterDelegate: nil, userDriverDelegate: self)
     }
 
     func checkForUpdates() {
