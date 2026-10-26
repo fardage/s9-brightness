@@ -1,5 +1,5 @@
 #!/bin/bash
-# Builds, signs, notarizes and publishes a release. See RELEASING.md.
+# Builds, signs, notarizes and publishes a release.
 #
 #   scripts/release.sh [--dry-run] [--yes] (--notes TEXT | --notes-file FILE) VERSION
 #
