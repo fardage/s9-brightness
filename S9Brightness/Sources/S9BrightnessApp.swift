@@ -68,6 +68,7 @@ struct MenuView: View {
                     .disabled(model.percent <= 0)
                     .help("Decrease by 2 %")
                     Slider(value: Binding(get: { model.percent }, set: { model.set($0) }), in: 0...100, step: 2)
+                        .tint(Color(red: 1, green: 0.66, blue: 0.35))  // The warm light of the icon and website
                     Button { model.step(by: 1) } label: {
                         Label("Increase Brightness", systemImage: "sun.max").labelStyle(.iconOnly)
                     }
